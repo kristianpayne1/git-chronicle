@@ -7,6 +7,8 @@ pub mod llm;
 pub mod reducer;
 pub mod templates;
 
+pub use error::ChronicleError;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())

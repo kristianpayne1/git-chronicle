@@ -5,7 +5,7 @@
 
 ## What's Left
 - [x] Step 1: Project scaffold
-- Step 2: Error types
+- [x] Step 2: Error types
 - Step 3: Core data types
 - Step 4: CLI parsing
 - Step 5: Ingester
@@ -20,4 +20,4 @@
 - Step 14: End-to-end validation
 
 ## Current Status
-Step 1 complete — project scaffold in place. `cargo build` and `cargo test` pass clean.
+Step 2 complete — `ChronicleError` defined with all 6 variants and user-facing messages. Re-exported from crate root. 7 unit tests pass, no warnings.
