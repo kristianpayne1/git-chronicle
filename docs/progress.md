@@ -9,7 +9,7 @@
 - [x] Step 3: Core data types
 - [x] Step 4: CLI parsing
 - [x] Step 5: Ingester
-- [ ] Step 6: Batcher
+- [x] Step 6: Batcher
 - [ ] Step 7: Templates
 - [ ] Step 8: LLM trait and MockBackend
 - [ ] Step 9: OllamaBackend
@@ -20,4 +20,4 @@
 - [ ] Step 14: End-to-end validation
 
 ## Current Status
-Step 5 complete — `ingest()` with `Filters` (author, since, SHA range, branch). Diffs generated per-commit and immediately dropped. 37 tests pass, no warnings.
+Step 6 complete — `batch_commits` and `batch_summaries` implemented via a shared generic `chunk` helper. 49 tests pass, no warnings.
