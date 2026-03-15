@@ -6,8 +6,10 @@ pub mod ingester;
 pub mod llm;
 pub mod reducer;
 pub mod templates;
+pub mod types;
 
 pub use error::ChronicleError;
+pub use types::{AuditEntry, Commit, DateRange, Summary};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
