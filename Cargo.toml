@@ -1,0 +1,29 @@
+[package]
+name = "git-chronicle"
+version = "0.1.0"
+edition = "2024"
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+git2 = { version = "0.18" }
+libgit2-sys = { version = "0.16", features = ["vendored"] }
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+tera = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+indicatif = "0.17"
+colored = "2"
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1"
+async-trait = "0.1"
+
+[dev-dependencies]
+mockito = "*"
+tempfile = "*"
+assert_cmd = "*"

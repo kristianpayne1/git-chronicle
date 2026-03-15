@@ -1,0 +1,1 @@
+// TODO: Hierarchical reduce loop — orchestrates passes over Vec<Summary>

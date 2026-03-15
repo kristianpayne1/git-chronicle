@@ -5,7 +5,7 @@
 | Property          | Value                          |
 |-------------------|--------------------------------|
 | Edition           | 2021                           |
-| MSRV              | 1.75                           |
+| MSRV              | 1.92                           |
 | Primary target    | `aarch64-apple-darwin`         |
 | Secondary target  | `x86_64-unknown-linux-gnu`     |
 | Release profile   | `opt-level = 3`, `lto = true`, `strip = true` |

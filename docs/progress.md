@@ -4,7 +4,7 @@
 - Documentation complete: project brief, product context, tech context, system patterns, implementation plan
 
 ## What's Left
-- Step 1: Project scaffold
+- [x] Step 1: Project scaffold
 - Step 2: Error types
 - Step 3: Core data types
 - Step 4: CLI parsing
@@ -20,4 +20,4 @@
 - Step 14: End-to-end validation
 
 ## Current Status
-Pre-implementation — all design docs finalised, ready to begin Step 1.
+Step 1 complete — project scaffold in place. `cargo build` and `cargo test` pass clean.
