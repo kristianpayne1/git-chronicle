@@ -13,11 +13,11 @@
 - [x] Step 7: Templates
 - [x] Step 8: LLM trait and MockBackend
 - [x] Step 9: OllamaBackend
-- [ ] Step 10: ClaudeBackend
+- [x] Step 10: ClaudeBackend
 - [ ] Step 11: Reducer
 - [ ] Step 12: Audit trail
 - [ ] Step 13: Main pipeline
 - [ ] Step 14: End-to-end validation
 
 ## Current Status
-Step 9 complete — `OllamaBackend` with retry-on-connect-error, `parse_ollama_response` helper, zero-delay test constructor. 78 tests pass, no warnings.
+Step 10 complete — `ClaudeBackend` with 429/529 retry, required headers, API-key redaction. 87 tests pass, no warnings.
