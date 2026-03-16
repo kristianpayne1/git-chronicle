@@ -12,7 +12,7 @@
 - [x] Step 6: Batcher
 - [x] Step 7: Templates
 - [x] Step 8: LLM trait and MockBackend
-- [ ] Step 9: OllamaBackend
+- [x] Step 9: OllamaBackend
 - [ ] Step 10: ClaudeBackend
 - [ ] Step 11: Reducer
 - [ ] Step 12: Audit trail
@@ -20,4 +20,4 @@
 - [ ] Step 14: End-to-end validation
 
 ## Current Status
-Step 8 complete — `LlmBackend` trait, `build()` factory, stub backends, and `MockBackend` (test-only). 70 tests pass, no warnings.
+Step 9 complete — `OllamaBackend` with retry-on-connect-error, `parse_ollama_response` helper, zero-delay test constructor. 78 tests pass, no warnings.
