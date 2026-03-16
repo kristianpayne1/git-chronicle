@@ -38,7 +38,7 @@ pub struct Cli {
     pub model: String,
 
     /// Number of commits or summaries per batch (minimum 2)
-    #[arg(long, default_value_t = 20)]
+    #[arg(long, default_value_t = 5)]
     pub group_size: usize,
 
     /// Omit diffs from prompts to reduce token usage
