@@ -1,6 +1,8 @@
 pub mod claude;
 pub mod ollama;
 
+use std::sync::Arc;
+
 use async_trait::async_trait;
 
 use crate::{
@@ -10,16 +12,19 @@ use crate::{
 
 use self::{claude::ClaudeBackend, ollama::OllamaBackend};
 
+/// The `'static` bound is required so implementations can be moved into
+/// `tokio::task::JoinSet` futures without lifetime constraints.
 #[async_trait]
-pub trait LlmBackend: Send + Sync {
+pub trait LlmBackend: Send + Sync + 'static {
     async fn complete(&self, prompt: &str) -> Result<String, ChronicleError>;
 }
 
 /// Construct the appropriate backend from the parsed CLI config.
-pub fn build(config: &Cli) -> Box<dyn LlmBackend> {
+/// Returns an `Arc` so it can be cheaply cloned into concurrent tasks.
+pub fn build(config: &Cli) -> Arc<dyn LlmBackend> {
     match config.backend {
-        Backend::Ollama => Box::new(OllamaBackend::new(config)),
-        Backend::Claude => Box::new(ClaudeBackend::new(config)),
+        Backend::Ollama => Arc::new(OllamaBackend::new(config)),
+        Backend::Claude => Arc::new(ClaudeBackend::new(config)),
     }
 }
 
@@ -39,6 +44,7 @@ pub mod mock {
     struct Inner {
         responses: VecDeque<Result<String, ChronicleError>>,
         call_count: usize,
+        prompts: Vec<String>,
     }
 
     /// A test double for `LlmBackend` that replays canned responses in order.
@@ -54,6 +60,7 @@ pub mod mock {
                 inner: Mutex::new(Inner {
                     responses: responses.into_iter().collect(),
                     call_count: 0,
+                    prompts: Vec::new(),
                 }),
             }
         }
@@ -61,13 +68,19 @@ pub mod mock {
         pub fn call_count(&self) -> usize {
             self.inner.lock().expect("lock").call_count
         }
+
+        /// All prompts received across every `complete()` call, in call order.
+        pub fn recorded_prompts(&self) -> Vec<String> {
+            self.inner.lock().expect("lock").prompts.clone()
+        }
     }
 
     #[async_trait]
     impl LlmBackend for MockBackend {
-        async fn complete(&self, _prompt: &str) -> Result<String, ChronicleError> {
+        async fn complete(&self, prompt: &str) -> Result<String, ChronicleError> {
             let mut inner = self.inner.lock().expect("lock");
             inner.call_count += 1;
+            inner.prompts.push(prompt.to_string());
             inner.responses.pop_front().unwrap_or_else(|| {
                 panic!(
                     "MockBackend exhausted: complete() called {} time(s) but no more responses remain",

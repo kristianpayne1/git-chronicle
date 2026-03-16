@@ -14,10 +14,10 @@
 - [x] Step 8: LLM trait and MockBackend
 - [x] Step 9: OllamaBackend
 - [x] Step 10: ClaudeBackend
-- [ ] Step 11: Reducer
-- [ ] Step 12: Audit trail
+- [x] Step 11: Reducer
+- [x] Step 12: Audit trail
 - [ ] Step 13: Main pipeline
 - [ ] Step 14: End-to-end validation
 
 ## Current Status
-Step 10 complete — `ClaudeBackend` with 429/529 retry, required headers, API-key redaction. 87 tests pass, no warnings.
+Steps 11 & 12 complete — hierarchical reducer with JoinSet concurrency, `AuditWriter`, and `MockBackend` prompt recording. 99 tests pass, no warnings.
