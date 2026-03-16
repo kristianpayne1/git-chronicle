@@ -1,6 +1,7 @@
 use std::{collections::HashSet, path::PathBuf, sync::Arc};
 
 use chrono::Utc;
+use tokio::sync::mpsc::UnboundedSender;
 use tokio::task::JoinSet;
 
 use crate::{
@@ -12,11 +13,19 @@ use crate::{
     ChronicleError,
 };
 
+/// Events emitted by the reducer so callers can track progress externally.
+pub enum ProgressEvent {
+    PassStarted { pass: u32, total: usize },
+    BatchCompleted { pass: u32 },
+}
+
 pub struct ReduceConfig {
     pub group_size: usize,
     pub include_diffs: bool,
     pub template_dir: Option<PathBuf>,
     pub model: String,
+    /// Optional channel for progress events.  `None` disables reporting.
+    pub progress: Option<UnboundedSender<ProgressEvent>>,
 }
 
 /// Run the hierarchical reduce pipeline.
@@ -93,6 +102,11 @@ async fn run_commit_pass(
     config: &ReduceConfig,
     pass: u32,
 ) -> Result<Vec<Summary>, ChronicleError> {
+    let total = batches.len();
+    if let Some(tx) = &config.progress {
+        tx.send(ProgressEvent::PassStarted { pass, total }).ok();
+    }
+
     let mut tasks: JoinSet<Result<(usize, Summary), ChronicleError>> = JoinSet::new();
 
     for (idx, batch) in batches.into_iter().enumerate() {
@@ -103,9 +117,13 @@ async fn run_commit_pass(
         let date_range = commit_date_range(&batch);
         let backend = Arc::clone(&backend);
         let model = config.model.clone();
+        let progress = config.progress.clone();
 
         tasks.spawn(async move {
             let text = backend.complete(&prompt).await?;
+            if let Some(tx) = &progress {
+                tx.send(ProgressEvent::BatchCompleted { pass }).ok();
+            }
             Ok((idx, Summary { text, commits: shas, authors, date_range, model, pass }))
         });
     }
@@ -122,6 +140,11 @@ async fn run_summary_pass(
     pass: u32,
     is_final: bool,
 ) -> Result<Vec<Summary>, ChronicleError> {
+    let total = batches.len();
+    if let Some(tx) = &config.progress {
+        tx.send(ProgressEvent::PassStarted { pass, total }).ok();
+    }
+
     let mut tasks: JoinSet<Result<(usize, Summary), ChronicleError>> = JoinSet::new();
 
     for (idx, batch) in batches.into_iter().enumerate() {
@@ -137,9 +160,13 @@ async fn run_summary_pass(
         let date_range = summary_date_range(&batch);
         let backend = Arc::clone(&backend);
         let model = config.model.clone();
+        let progress = config.progress.clone();
 
         tasks.spawn(async move {
             let text = backend.complete(&prompt).await?;
+            if let Some(tx) = &progress {
+                tx.send(ProgressEvent::BatchCompleted { pass }).ok();
+            }
             Ok((idx, Summary { text, commits, authors, date_range, model, pass }))
         });
     }
@@ -248,6 +275,7 @@ mod tests {
             include_diffs: false,
             template_dir: None,
             model: "test-model".to_string(),
+            progress: None,
         }
     }
 

@@ -17,10 +17,7 @@ pub struct ClaudeBackend {
 
 impl ClaudeBackend {
     pub fn new(config: &Cli) -> Self {
-        let model = config
-            .model
-            .clone()
-            .unwrap_or_else(|| "claude-sonnet-4-6".to_string());
+        let model = config.model.clone();
         let endpoint = std::env::var("CHRONICLE_ENDPOINT")
             .unwrap_or_else(|_| "https://api.anthropic.com".to_string());
         // Validated by Cli::validate() before build() is called.

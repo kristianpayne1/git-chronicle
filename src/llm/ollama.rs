@@ -16,10 +16,7 @@ pub struct OllamaBackend {
 
 impl OllamaBackend {
     pub fn new(config: &Cli) -> Self {
-        let model = config
-            .model
-            .clone()
-            .unwrap_or_else(|| "qwen3.5:9b".to_string());
+        let model = config.model.clone();
         let endpoint = std::env::var("CHRONICLE_ENDPOINT")
             .unwrap_or_else(|_| "http://localhost:11434".to_string());
         Self {

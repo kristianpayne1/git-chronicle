@@ -106,7 +106,7 @@ mod tests {
         Cli {
             path: Some(PathBuf::from(".")),
             backend,
-            model: None,
+            model: "test-model".to_string(),
             group_size: 20,
             no_diffs: false,
             template: None,

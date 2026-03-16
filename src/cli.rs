@@ -33,9 +33,9 @@ pub struct Cli {
     #[arg(long, default_value_t = Backend::Ollama, value_enum)]
     pub backend: Backend,
 
-    /// Model name to pass to the backend [default: backend-specific]
+    /// Model name to pass to the backend
     #[arg(long)]
-    pub model: Option<String>,
+    pub model: String,
 
     /// Number of commits or summaries per batch (minimum 2)
     #[arg(long, default_value_t = 20)]
@@ -145,7 +145,7 @@ mod tests {
         Cli {
             path: Some(path),
             backend: Backend::Ollama,
-            model: None,
+            model: "test-model".to_string(),
             group_size: 10,
             no_diffs: false,
             template: None,

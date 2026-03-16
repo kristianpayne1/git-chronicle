@@ -16,8 +16,8 @@
 - [x] Step 10: ClaudeBackend
 - [x] Step 11: Reducer
 - [x] Step 12: Audit trail
-- [ ] Step 13: Main pipeline
+- [x] Step 13: Main pipeline
 - [ ] Step 14: End-to-end validation
 
 ## Current Status
-Steps 11 & 12 complete — hierarchical reducer with JoinSet concurrency, `AuditWriter`, and `MockBackend` prompt recording. 99 tests pass, no warnings.
+Step 13 complete — full pipeline wired in `main.rs`, `ProgressEvent` channel added to `ReduceConfig`, `indicatif` progress bars on stderr, 3 `assert_cmd` integration tests (success, bad-path error, `--output` audit file). 102 tests pass, no warnings.
