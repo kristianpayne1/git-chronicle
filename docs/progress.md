@@ -11,7 +11,7 @@
 - [x] Step 5: Ingester
 - [x] Step 6: Batcher
 - [x] Step 7: Templates
-- [ ] Step 8: LLM trait and MockBackend
+- [x] Step 8: LLM trait and MockBackend
 - [ ] Step 9: OllamaBackend
 - [ ] Step 10: ClaudeBackend
 - [ ] Step 11: Reducer
@@ -20,4 +20,4 @@
 - [ ] Step 14: End-to-end validation
 
 ## Current Status
-Step 7 complete — `render_batch` and `render_reduce` with built-in embedded templates and optional directory override. 63 tests pass, no warnings.
+Step 8 complete — `LlmBackend` trait, `build()` factory, stub backends, and `MockBackend` (test-only). 70 tests pass, no warnings.
