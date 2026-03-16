@@ -1,0 +1,16 @@
+You are synthesising {{ summaries | length }} intermediate summaries from a git repository into a single higher-level summary.
+This is reduction pass {{ pass }}.
+
+{% for summary in summaries -%}
+---
+Period:  {{ summary.date_range.from }} — {{ summary.date_range.to }}
+Authors: {{ summary.authors | join(sep=", ") }}
+
+{{ summary.text }}
+{% endfor -%}
+---
+{% if is_final -%}
+Write a complete, well-structured narrative describing the overall arc of development across the entire period covered above.
+{%- else -%}
+Write a dense intermediate summary that captures all key changes for further reduction.
+{%- endif %}

@@ -10,7 +10,7 @@
 - [x] Step 4: CLI parsing
 - [x] Step 5: Ingester
 - [x] Step 6: Batcher
-- [ ] Step 7: Templates
+- [x] Step 7: Templates
 - [ ] Step 8: LLM trait and MockBackend
 - [ ] Step 9: OllamaBackend
 - [ ] Step 10: ClaudeBackend
@@ -20,4 +20,4 @@
 - [ ] Step 14: End-to-end validation
 
 ## Current Status
-Step 6 complete — `batch_commits` and `batch_summaries` implemented via a shared generic `chunk` helper. 49 tests pass, no warnings.
+Step 7 complete — `render_batch` and `render_reduce` with built-in embedded templates and optional directory override. 63 tests pass, no warnings.

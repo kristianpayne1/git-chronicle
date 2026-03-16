@@ -1,0 +1,16 @@
+You are summarising a batch of git commits from a software repository.
+Produce a concise summary of what changed across these {{ commits | length }} commit(s).
+
+{% for commit in commits -%}
+---
+Commit: {{ commit.sha | truncate(length=8, end="") }}
+Author: {{ commit.author }}
+Date:   {{ commit.timestamp }}
+Message: {{ commit.message }}
+{% if include_diffs and commit.diff -%}
+Diff:
+{{ commit.diff }}
+{% endif -%}
+{% endfor -%}
+---
+Write a concise summary describing what these commits accomplish as a group.
