@@ -98,6 +98,7 @@ mod tests {
             date_range: DateRange::new(Utc::now(), Utc::now()),
             model: "llama3".to_string(),
             pass: 1,
+            duration_ms: 0,
         }
     }
 

@@ -72,6 +72,7 @@ mod tests {
             date_range: DateRange::new(Utc::now(), Utc::now()),
             model: "test-model".to_string(),
             pass,
+            duration_ms: 0,
         }
     }
 

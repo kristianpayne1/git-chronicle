@@ -17,6 +17,7 @@ use crate::{
 pub enum ProgressEvent {
     PassStarted { pass: u32, total: usize },
     BatchCompleted { pass: u32 },
+    PassFinished { pass: u32, duration_ms: u64 },
 }
 
 pub struct ReduceConfig {
@@ -106,6 +107,7 @@ async fn run_commit_pass(
     if let Some(tx) = &config.progress {
         tx.send(ProgressEvent::PassStarted { pass, total }).ok();
     }
+    let pass_start = std::time::Instant::now();
 
     let mut tasks: JoinSet<Result<(usize, Summary), ChronicleError>> = JoinSet::new();
 
@@ -120,15 +122,24 @@ async fn run_commit_pass(
         let progress = config.progress.clone();
 
         tasks.spawn(async move {
+            let call_start = std::time::Instant::now();
             let text = backend.complete(&prompt).await?;
+            let duration_ms = call_start.elapsed().as_millis() as u64;
             if let Some(tx) = &progress {
                 tx.send(ProgressEvent::BatchCompleted { pass }).ok();
             }
-            Ok((idx, Summary { text, commits: shas, authors, date_range, model, pass }))
+            Ok((idx, Summary { text, commits: shas, authors, date_range, model, pass, duration_ms }))
         });
     }
 
-    collect_ordered(tasks).await
+    let result = collect_ordered(tasks).await?;
+    if let Some(tx) = &config.progress {
+        tx.send(ProgressEvent::PassFinished {
+            pass,
+            duration_ms: pass_start.elapsed().as_millis() as u64,
+        }).ok();
+    }
+    Ok(result)
 }
 
 /// Render and submit all summary batches concurrently; return summaries in
@@ -144,6 +155,7 @@ async fn run_summary_pass(
     if let Some(tx) = &config.progress {
         tx.send(ProgressEvent::PassStarted { pass, total }).ok();
     }
+    let pass_start = std::time::Instant::now();
 
     let mut tasks: JoinSet<Result<(usize, Summary), ChronicleError>> = JoinSet::new();
 
@@ -163,15 +175,24 @@ async fn run_summary_pass(
         let progress = config.progress.clone();
 
         tasks.spawn(async move {
+            let call_start = std::time::Instant::now();
             let text = backend.complete(&prompt).await?;
+            let duration_ms = call_start.elapsed().as_millis() as u64;
             if let Some(tx) = &progress {
                 tx.send(ProgressEvent::BatchCompleted { pass }).ok();
             }
-            Ok((idx, Summary { text, commits, authors, date_range, model, pass }))
+            Ok((idx, Summary { text, commits, authors, date_range, model, pass, duration_ms }))
         });
     }
 
-    collect_ordered(tasks).await
+    let result = collect_ordered(tasks).await?;
+    if let Some(tx) = &config.progress {
+        tx.send(ProgressEvent::PassFinished {
+            pass,
+            duration_ms: pass_start.elapsed().as_millis() as u64,
+        }).ok();
+    }
+    Ok(result)
 }
 
 /// Drain a `JoinSet` that yields `(batch_index, T)`, abort on the first

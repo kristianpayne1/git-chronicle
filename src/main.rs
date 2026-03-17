@@ -86,7 +86,9 @@ async fn run() -> Result<(), ChronicleError> {
     let mut audit = AuditWriter::new(cli.output.as_deref())?;
     let backend = llm::build(&cli);
 
+    let overall_start = std::time::Instant::now();
     let narrative = reducer::reduce(commits, backend, &mut audit, &config).await?;
+    let overall_ms = overall_start.elapsed().as_millis();
 
     // Dropping config closes the progress channel; then we wait for bars to clear.
     drop(config);
@@ -94,6 +96,7 @@ async fn run() -> Result<(), ChronicleError> {
         .await
         .map_err(|e| ChronicleError::LlmFailure(format!("progress task panicked: {e}")))?;
 
+    eprintln!("Total: {:.1}s", overall_ms as f64 / 1000.0);
     println!("{narrative}");
     Ok(())
 }
@@ -104,6 +107,7 @@ async fn run_progress(mut rx: UnboundedReceiver<ProgressEvent>) {
     let style = ProgressStyle::with_template("{msg} [{bar:40.cyan/blue}] {pos}/{len}")
         .unwrap_or_else(|_| ProgressStyle::default_bar());
     let mut bars: HashMap<u32, ProgressBar> = HashMap::new();
+    let mut pass_times: Vec<(u32, u64)> = Vec::new();
 
     while let Some(event) = rx.recv().await {
         match event {
@@ -118,6 +122,12 @@ async fn run_progress(mut rx: UnboundedReceiver<ProgressEvent>) {
                     pb.inc(1);
                 }
             }
+            ProgressEvent::PassFinished { pass, duration_ms } => {
+                if let Some(pb) = bars.get(&pass) {
+                    pb.finish_and_clear();
+                }
+                pass_times.push((pass, duration_ms));
+            }
         }
     }
 
@@ -125,4 +135,8 @@ async fn run_progress(mut rx: UnboundedReceiver<ProgressEvent>) {
         pb.finish_and_clear();
     }
     mp.clear().ok();
+
+    for (pass, ms) in &pass_times {
+        eprintln!("Pass {pass}: {:.1}s", *ms as f64 / 1000.0);
+    }
 }

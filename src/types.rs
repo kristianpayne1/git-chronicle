@@ -30,6 +30,8 @@ pub struct Summary {
     pub date_range: DateRange,
     pub model: String,
     pub pass: u32,
+    /// Wall-clock milliseconds for the LLM call that produced this summary.
+    pub duration_ms: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,6 +42,8 @@ pub struct AuditEntry {
     pub date_range: DateRange,
     pub model: String,
     pub summary: String,
+    /// Wall-clock milliseconds for the LLM call that produced this entry.
+    pub duration_ms: u64,
 }
 
 impl From<&Summary> for AuditEntry {
@@ -51,6 +55,7 @@ impl From<&Summary> for AuditEntry {
             date_range: s.date_range.clone(),
             model: s.model.clone(),
             summary: s.text.clone(),
+            duration_ms: s.duration_ms,
         }
     }
 }
@@ -119,6 +124,7 @@ mod tests {
             date_range: DateRange::new(utc(2024, 1, 1), utc(2024, 1, 31)),
             model: "llama3".to_string(),
             pass: 1,
+            duration_ms: 0,
         };
         let json = serde_json::to_string(&summary).expect("serialise");
         let back: Summary = serde_json::from_str(&json).expect("deserialise");
@@ -136,6 +142,7 @@ mod tests {
             date_range: DateRange::new(utc(2024, 4, 1), utc(2024, 4, 30)),
             model: "llama3".to_string(),
             summary: "Overhauled the pipeline.".to_string(),
+            duration_ms: 0,
         };
         let json = serde_json::to_string(&entry).expect("serialise");
         let back: AuditEntry = serde_json::from_str(&json).expect("deserialise");
@@ -152,6 +159,7 @@ mod tests {
             date_range: DateRange::new(utc(2024, 6, 1), utc(2024, 6, 15)),
             model: "mistral".to_string(),
             pass: 3,
+            duration_ms: 0,
         };
         let entry = AuditEntry::from(&summary);
         assert_eq!(entry.summary, summary.text);
