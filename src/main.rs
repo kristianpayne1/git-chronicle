@@ -63,7 +63,17 @@ async fn run() -> Result<(), ChronicleError> {
     };
 
     let include_diffs = !cli.no_diffs;
+
+    let spinner = ProgressBar::new_spinner();
+    spinner.set_style(
+        ProgressStyle::with_template("{spinner:.cyan} {msg}")
+            .unwrap_or_else(|_| ProgressStyle::default_spinner()),
+    );
+    spinner.set_message("Reading commits…");
+    spinner.enable_steady_tick(std::time::Duration::from_millis(80));
+
     let commits = ingester::ingest(&path, &filters, include_diffs)?;
+    spinner.finish_and_clear();
 
     if commits.is_empty() {
         eprintln!("git-chronicle: no commits found matching the given filters.");
@@ -104,7 +114,7 @@ async fn run() -> Result<(), ChronicleError> {
 
 async fn run_progress(mut rx: UnboundedReceiver<ProgressEvent>) {
     let mp = MultiProgress::new();
-    let style = ProgressStyle::with_template("{msg} [{bar:40.cyan/blue}] {pos}/{len}")
+    let style = ProgressStyle::with_template("{spinner:.cyan} {msg} [{bar:40.cyan/blue}] {pos}/{len}")
         .unwrap_or_else(|_| ProgressStyle::default_bar());
     let mut bars: HashMap<u32, ProgressBar> = HashMap::new();
     let mut pass_times: Vec<(u32, u64)> = Vec::new();
@@ -115,6 +125,7 @@ async fn run_progress(mut rx: UnboundedReceiver<ProgressEvent>) {
                 let pb = mp.add(ProgressBar::new(total as u64));
                 pb.set_style(style.clone());
                 pb.set_message(format!("Pass {pass} — {total} batches"));
+                pb.enable_steady_tick(std::time::Duration::from_millis(80));
                 bars.insert(pass, pb);
             }
             ProgressEvent::BatchCompleted { pass } => {
