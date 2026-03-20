@@ -6,6 +6,7 @@ use crate::{ChronicleError, Commit, Summary};
 
 const BUILTIN_BATCH: &str = include_str!("../templates/batch.tera");
 const BUILTIN_REDUCE: &str = include_str!("../templates/reduce.tera");
+const BUILTIN_FINAL: &str = include_str!("../templates/final.tera");
 
 /// Render the batch prompt for a slice of commits.
 ///
@@ -30,27 +31,31 @@ pub fn render_batch(
 
 /// Render the reduce prompt for a slice of summaries.
 ///
-/// `pass` is the current reduction pass number (1-indexed).  `is_final`
-/// changes the instruction tone: final pass requests a complete narrative;
-/// intermediate passes request a dense intermediate summary.  `template_dir`
-/// overrides the built-in `reduce.tera` if a file named `reduce.tera`
-/// exists in that directory.
+/// `pass` is the current reduction pass number (1-indexed).  When `is_final`
+/// is true, `final.tera` is used (complete narrative); otherwise `reduce.tera`
+/// is used (dense intermediate summary).  `template_dir` overrides the
+/// built-in templates if a file with the matching name exists in that directory.
 pub fn render_reduce(
     summaries: &[Summary],
     pass: u32,
     is_final: bool,
     template_dir: Option<&Path>,
 ) -> Result<String, ChronicleError> {
-    let src = resolve("reduce.tera", BUILTIN_REDUCE, template_dir)?;
+    let (name, builtin) = if is_final {
+        ("final.tera", BUILTIN_FINAL)
+    } else {
+        ("reduce.tera", BUILTIN_REDUCE)
+    };
+
+    let src = resolve(name, builtin, template_dir)?;
     let mut tera = Tera::default();
-    tera.add_raw_template("reduce.tera", &src)?;
+    tera.add_raw_template(name, &src)?;
 
     let mut ctx = Context::new();
     ctx.insert("summaries", summaries);
     ctx.insert("pass", &pass);
-    ctx.insert("is_final", &is_final);
 
-    Ok(tera.render("reduce.tera", &ctx)?)
+    Ok(tera.render(name, &ctx)?)
 }
 
 /// Return the template source: use the file from `template_dir` if it
@@ -170,19 +175,19 @@ mod tests {
     }
 
     #[test]
-    fn reduce_is_final_true_says_narrative() {
+    fn final_template_says_narrative() {
         let summaries = vec![sample_summary()];
         let out = render_reduce(&summaries, 1, true, None).expect("render");
-        assert!(out.contains("narrative"), "final pass should request a narrative\n{out}");
+        assert!(out.contains("narrative"), "final.tera should request a narrative\n{out}");
     }
 
     #[test]
-    fn reduce_is_final_false_says_intermediate() {
+    fn reduce_template_says_intermediate() {
         let summaries = vec![sample_summary()];
         let out = render_reduce(&summaries, 1, false, None).expect("render");
         assert!(
             out.contains("intermediate"),
-            "non-final pass should request an intermediate summary\n{out}"
+            "reduce.tera should request an intermediate summary\n{out}"
         );
     }
 
@@ -225,7 +230,21 @@ mod tests {
     }
 
     #[test]
-    fn missing_custom_file_falls_back_to_builtin() {
+    fn custom_final_template_overrides_builtin() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        std::fs::write(
+            dir.path().join("final.tera"),
+            "CUSTOM_FINAL:{{ summaries | length }}",
+        )
+        .expect("write");
+
+        let out = render_reduce(&[sample_summary()], 1, true, Some(dir.path()))
+            .expect("render");
+        assert!(out.starts_with("CUSTOM_FINAL:"), "custom final.tera not used\n{out}");
+    }
+
+    #[test]
+    fn missing_custom_reduce_falls_back_to_builtin() {
         let dir = tempfile::tempdir().expect("tempdir");
         // Only batch.tera is provided; reduce.tera should fall back to built-in
         std::fs::write(
@@ -236,7 +255,21 @@ mod tests {
 
         let out = render_reduce(&[sample_summary()], 1, false, Some(dir.path()))
             .expect("render");
-        // Built-in reduce.tera contains "intermediate"
-        assert!(out.contains("intermediate"), "should have fallen back to built-in\n{out}");
+        assert!(out.contains("intermediate"), "should have fallen back to built-in reduce.tera\n{out}");
+    }
+
+    #[test]
+    fn missing_custom_final_falls_back_to_builtin() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        // Only batch.tera is provided; final.tera should fall back to built-in
+        std::fs::write(
+            dir.path().join("batch.tera"),
+            "CUSTOM:{{ commits | length }}",
+        )
+        .expect("write");
+
+        let out = render_reduce(&[sample_summary()], 1, true, Some(dir.path()))
+            .expect("render");
+        assert!(out.contains("narrative"), "should have fallen back to built-in final.tera\n{out}");
     }
 }

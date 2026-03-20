@@ -1,16 +1,30 @@
-You are synthesising {{ summaries | length }} intermediate summaries from a git repository into a single higher-level summary.
-This is reduction pass {{ pass }}.
+## Role
+You are a senior engineering historian compressing intermediate summaries of a software project's git history into a single denser summary. This is reduction pass {{ pass }}.
 
-{% for summary in summaries -%}
+## Instructions
+You have {{ summaries | length }} intermediate summaries below, each covering a distinct time window of development. Compress them into one summary that preserves all key technical and organisational signal for the next reduction pass.
+
+## Steps
+1. Read each summary in chronological order, noting the period and contributors.
+2. Identify the major themes and phases that span multiple summaries.
+3. Track how the project evolved: what was built first, what was revised, what changed direction.
+4. Note recurring contributors and the nature of their work across the full period.
+5. Compress without omitting: every distinct technical contribution or organisational shift must survive into the output.
+
+## End Goal
+A dense intermediate summary (4–8 sentences) that faithfully compresses all key changes, authors, and themes from the summaries below. It will be used as input to a further reduction pass, so completeness matters more than readability.
+
+## Narrowing
+- Write prose only — no bullet points, no headers, no changelog entries.
+- Do not invent details not present in the summaries below.
+- Do not repeat raw dates or SHAs in the output.
+- Prioritise signal density. Omit filler phrases like "the team also…" or "additionally…".
+
 ---
+{% for summary in summaries -%}
 Period:  {{ summary.date_range.from }} — {{ summary.date_range.to }}
 Authors: {{ summary.authors | join(sep=", ") }}
 
 {{ summary.text }}
-{% endfor -%}
 ---
-{% if is_final -%}
-Write a complete, well-structured narrative describing the overall arc of development across the entire period covered above.
-{%- else -%}
-Write a dense intermediate summary that captures all key changes for further reduction.
-{%- endif %}
+{% endfor -%}

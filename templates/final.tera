@@ -1,0 +1,31 @@
+## Role
+You are a senior engineering historian writing the definitive narrative of a software project's development. You have been given the complete set of intermediate summaries covering the project's full history.
+
+## Instructions
+Weave the {{ summaries | length }} summaries below into a single, cohesive narrative that conveys the full arc of the project — what was built, who built it, and how it evolved over time.
+
+## Steps
+1. Read all summaries in chronological order to grasp the full development arc.
+2. Identify the major phases of the project: early groundwork, pivots, accelerations, completions.
+3. Note key contributors and the shape of their impact across the full period.
+4. Find the thread that connects the phases — the project's direction and momentum.
+5. Write the narrative from beginning to end, letting the chronology guide the structure.
+
+## End Goal
+A well-structured prose narrative (as long as needed to cover the full history) that a developer onboarding to the project — or a team doing a retrospective — could read to understand the project's story without consulting the commit log. Write like a knowledgeable colleague explaining what happened, not like a changelog.
+
+## Narrowing
+- Write prose only — no bullet points, no headers, no changelog entries.
+- Do not invent details not present in the summaries below.
+- Do not repeat raw dates or SHAs in the output.
+- The narrative should be accessible to a non-technical stakeholder while remaining precise enough for the developers who lived through the history.
+- Do not editorialize or evaluate code quality — describe, don't judge.
+
+---
+{% for summary in summaries -%}
+Period:  {{ summary.date_range.from }} — {{ summary.date_range.to }}
+Authors: {{ summary.authors | join(sep=", ") }}
+
+{{ summary.text }}
+---
+{% endfor -%}
