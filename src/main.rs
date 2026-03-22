@@ -100,14 +100,17 @@ async fn run() -> Result<(), ChronicleError> {
     let narrative = reducer::reduce(commits, backend, &mut audit, &config).await?;
     let overall_ms = overall_start.elapsed().as_millis();
 
-    // Dropping config closes the progress channel; then we wait for bars to clear.
+    // Dropping config closes the progress channel; then we wait for bars to finish.
     drop(config);
     progress_handle
         .await
         .map_err(|e| ChronicleError::LlmFailure(format!("progress task panicked: {e}")))?;
 
-    eprintln!("Total: {:.1}s", overall_ms as f64 / 1000.0);
+    let rule = "─".repeat(60);
+    eprintln!("\n{rule}\n");
     println!("{narrative}");
+    let total = format!("{:.1}s", overall_ms as f64 / 1000.0);
+    eprintln!("\n{}{total}", "─".repeat(60 - total.len() - 1));
     Ok(())
 }
 
@@ -117,7 +120,6 @@ async fn run_progress(mut rx: UnboundedReceiver<ProgressEvent>) {
     let style = ProgressStyle::with_template("{spinner:.cyan} {msg} [{bar:40.cyan/blue}] {pos}/{len}")
         .unwrap_or_else(|_| ProgressStyle::default_bar());
     let mut bars: HashMap<u32, ProgressBar> = HashMap::new();
-    let mut pass_times: Vec<(u32, u64)> = Vec::new();
 
     while let Some(event) = rx.recv().await {
         match event {
@@ -135,19 +137,16 @@ async fn run_progress(mut rx: UnboundedReceiver<ProgressEvent>) {
             }
             ProgressEvent::PassFinished { pass, duration_ms } => {
                 if let Some(pb) = bars.get(&pass) {
-                    pb.finish_and_clear();
+                    pb.finish_with_message(format!(
+                        "Pass {pass} — done ({:.1}s)",
+                        duration_ms as f64 / 1000.0
+                    ));
                 }
-                pass_times.push((pass, duration_ms));
             }
         }
     }
 
     for pb in bars.values() {
-        pb.finish_and_clear();
-    }
-    mp.clear().ok();
-
-    for (pass, ms) in &pass_times {
-        eprintln!("Pass {pass}: {:.1}s", *ms as f64 / 1000.0);
+        pb.finish();
     }
 }
