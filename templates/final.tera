@@ -14,6 +14,13 @@ Weave the {{ summaries | length }} summaries below into a single, cohesive narra
 ## End Goal
 A well-structured prose narrative (as long as needed to cover the full history) that a developer onboarding to the project — or a team doing a retrospective — could read to understand the project's story without consulting the commit log. Write like a knowledgeable colleague explaining what happened, not like a changelog.
 
+## Output Structure
+Structure the narrative as a sequence of prose paragraphs — no markdown, no headers, no bullet points. Follow this layout exactly:
+
+1. **Opening paragraph** — Establish the stage: who was working on the project, what period this covers, and what the project's starting point or goal was.
+2. **One paragraph per major phase or theme** — Each paragraph covers one coherent phase of development (e.g. initial scaffolding, a significant feature area, a period of refactoring, a stabilisation push). Let the natural phases in the history determine how many paragraphs there are. Move chronologically.
+3. **Closing paragraph** — Describe where the project stood at the end of the period: what had been built, who contributed, and what direction the work was heading.
+
 ## Narrowing
 - Write prose only — no bullet points, no headers, no changelog entries.
 - Do not invent details not present in the summaries below.
