@@ -47,9 +47,7 @@ async fn run() -> Result<(), ChronicleError> {
         .as_deref()
         .map(|s| {
             NaiveDate::parse_from_str(s, "%Y-%m-%d").map_err(|_| {
-                ChronicleError::InvalidConfig(format!(
-                    "--since must be YYYY-MM-DD, got '{s}'"
-                ))
+                ChronicleError::InvalidConfig(format!("--since must be YYYY-MM-DD, got '{s}'"))
             })
         })
         .transpose()?;
@@ -114,19 +112,28 @@ async fn run() -> Result<(), ChronicleError> {
     Ok(())
 }
 
-
 async fn run_progress(mut rx: UnboundedReceiver<ProgressEvent>) {
     let mp = MultiProgress::new();
-    let style = ProgressStyle::with_template("{spinner:.cyan} {msg} [{bar:40.cyan/blue}] {pos}/{len}")
-        .unwrap_or_else(|_| ProgressStyle::default_bar());
+    let style =
+        ProgressStyle::with_template("{spinner:.cyan} {msg} [{bar:40.cyan/blue}] {pos}/{len}")
+            .unwrap_or_else(|_| ProgressStyle::default_bar());
     let mut bars: HashMap<u32, ProgressBar> = HashMap::new();
 
     while let Some(event) = rx.recv().await {
         match event {
-            ProgressEvent::PassStarted { pass, total } => {
+            ProgressEvent::PassStarted {
+                pass,
+                total,
+                is_final,
+            } => {
                 let pb = mp.add(ProgressBar::new(total as u64));
                 pb.set_style(style.clone());
-                pb.set_message(format!("Pass {pass} — {total} batches"));
+                let label = if is_final {
+                    format!("Final — {total} batches")
+                } else {
+                    format!("Pass {pass} — {total} batches")
+                };
+                pb.set_message(label);
                 pb.enable_steady_tick(std::time::Duration::from_millis(80));
                 bars.insert(pass, pb);
             }
@@ -135,12 +142,18 @@ async fn run_progress(mut rx: UnboundedReceiver<ProgressEvent>) {
                     pb.inc(1);
                 }
             }
-            ProgressEvent::PassFinished { pass, duration_ms } => {
+            ProgressEvent::PassFinished {
+                pass,
+                duration_ms,
+                is_final,
+            } => {
                 if let Some(pb) = bars.get(&pass) {
-                    pb.finish_with_message(format!(
-                        "Pass {pass} — done ({:.1}s)",
-                        duration_ms as f64 / 1000.0
-                    ));
+                    let label = if is_final {
+                        format!("Final — done ({:.1}s)", duration_ms as f64 / 1000.0)
+                    } else {
+                        format!("Pass {pass} — done ({:.1}s)", duration_ms as f64 / 1000.0)
+                    };
+                    pb.finish_with_message(label);
                 }
             }
         }

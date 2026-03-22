@@ -15,9 +15,9 @@ use crate::{
 
 /// Events emitted by the reducer so callers can track progress externally.
 pub enum ProgressEvent {
-    PassStarted { pass: u32, total: usize },
+    PassStarted { pass: u32, total: usize, is_final: bool },
     BatchCompleted { pass: u32 },
-    PassFinished { pass: u32, duration_ms: u64 },
+    PassFinished { pass: u32, duration_ms: u64, is_final: bool },
 }
 
 pub struct ReduceConfig {
@@ -66,14 +66,15 @@ async fn fold_summaries(
     config: &ReduceConfig,
     mut pass: u32,
 ) -> Result<String, ChronicleError> {
-    while summaries.len() > 1 {
+    // Intermediate passes: reduce until all summaries fit in a single batch.
+    // The final pass is always handled separately below so that final.tera is
+    // guaranteed to run regardless of how many summaries pass 1 produced.
+    while summaries.len() > config.group_size {
         let prev_len = summaries.len();
         let batches = batcher::batch_summaries(summaries, config.group_size);
-        // is_final is true when this pass collapses everything into one group
-        let is_final = batches.len() == 1;
 
         let new_summaries =
-            run_summary_pass(batches, Arc::clone(&backend), config, pass, is_final).await?;
+            run_summary_pass(batches, Arc::clone(&backend), config, pass, false).await?;
 
         debug_assert!(
             new_summaries.len() < prev_len,
@@ -88,7 +89,16 @@ async fn fold_summaries(
         pass += 1;
     }
 
-    summaries
+    // Final pass: always runs through final.tera, even when there is only one
+    // incoming summary (e.g. the entire history fit in a single batch pass).
+    let final_summaries =
+        run_summary_pass(vec![summaries], Arc::clone(&backend), config, pass, true).await?;
+
+    for s in &final_summaries {
+        audit.record(s)?;
+    }
+
+    final_summaries
         .into_iter()
         .next()
         .map(|s| s.text)
@@ -105,7 +115,7 @@ async fn run_commit_pass(
 ) -> Result<Vec<Summary>, ChronicleError> {
     let total = batches.len();
     if let Some(tx) = &config.progress {
-        tx.send(ProgressEvent::PassStarted { pass, total }).ok();
+        tx.send(ProgressEvent::PassStarted { pass, total, is_final: false }).ok();
     }
     let pass_start = std::time::Instant::now();
 
@@ -137,6 +147,7 @@ async fn run_commit_pass(
         tx.send(ProgressEvent::PassFinished {
             pass,
             duration_ms: pass_start.elapsed().as_millis() as u64,
+            is_final: false,
         }).ok();
     }
     Ok(result)
@@ -153,7 +164,7 @@ async fn run_summary_pass(
 ) -> Result<Vec<Summary>, ChronicleError> {
     let total = batches.len();
     if let Some(tx) = &config.progress {
-        tx.send(ProgressEvent::PassStarted { pass, total }).ok();
+        tx.send(ProgressEvent::PassStarted { pass, total, is_final }).ok();
     }
     let pass_start = std::time::Instant::now();
 
@@ -190,6 +201,7 @@ async fn run_summary_pass(
         tx.send(ProgressEvent::PassFinished {
             pass,
             duration_ms: pass_start.elapsed().as_millis() as u64,
+            is_final,
         }).ok();
     }
     Ok(result)
@@ -303,9 +315,10 @@ mod tests {
     // ── single-pass ────────────────────────────────────────────────────────
 
     #[tokio::test]
-    async fn single_batch_one_llm_call() {
-        // 3 commits with group_size=20 → 1 batch → 1 LLM call → return directly
-        let backend = Arc::new(MockBackend::new(vec![ok("the final narrative")]));
+    async fn single_batch_always_runs_final_pass() {
+        // 3 commits with group_size=20 → 1 batch pass → 1 summary → final pass
+        // final.tera must always run, even when the whole history fits in one batch.
+        let backend = Arc::new(MockBackend::new(vec![ok("batch summary"), ok("the final narrative")]));
         let mut audit = AuditWriter::in_memory();
 
         let result = reduce(make_commits(3), backend.clone(), &mut audit, &config(20))
@@ -313,9 +326,10 @@ mod tests {
             .expect("reduce");
 
         assert_eq!(result, "the final narrative");
-        assert_eq!(backend.call_count(), 1);
-        assert_eq!(audit.entries().len(), 1);
-        assert_eq!(audit.entries()[0].pass, 1);
+        assert_eq!(backend.call_count(), 2);
+        assert_eq!(audit.entries().len(), 2);
+        assert_eq!(audit.entries()[0].pass, 1); // batch pass
+        assert_eq!(audit.entries()[1].pass, 2); // final pass
     }
 
     // ── multi-pass ─────────────────────────────────────────────────────────
@@ -384,13 +398,13 @@ mod tests {
 
     #[tokio::test]
     async fn audit_record_called_once_per_summary() {
-        // Single-pass: 1 commit, 1 summary, 1 audit entry
-        let backend = Arc::new(MockBackend::new(vec![ok("narrative")]));
+        // 1 commit → 1 batch summary (pass 1) + 1 final summary (pass 2) = 2 audit entries
+        let backend = Arc::new(MockBackend::new(vec![ok("batch summary"), ok("narrative")]));
         let mut audit = AuditWriter::in_memory();
         reduce(make_commits(1), backend, &mut audit, &config(20))
             .await
             .expect("reduce");
-        assert_eq!(audit.entries().len(), 1);
+        assert_eq!(audit.entries().len(), 2);
     }
 
     // ── is_final ───────────────────────────────────────────────────────────
